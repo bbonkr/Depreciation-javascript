@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2011-2015 Pon Cheol Ku 
+ * Licensed under MIT (https://github.com/bbonkr/Depreciation-javascript/blob/master/LICENSE.md)
+ */
+
 String.prototype.padLeft = function(padChar, length){
     var tmp = this;
     var tmpLen = tmp.length;

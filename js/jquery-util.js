@@ -1,4 +1,9 @@
-﻿$(function () {
+﻿/*!
+ * Copyright 2011-2015 Pon Cheol Ku 
+ * Licensed under MIT (https://github.com/bbonkr/Depreciation-javascript/blob/master/LICENSE.md)
+ */
+
+$(function () {
     //replaces $.browser functionality that was deprecated in jQuery 1.9
     $.browser = {};
     $.browser.mozilla = /mozilla/.test(navigator.userAgent.toLowerCase()) && !/webkit/.test(navigator.userAgent.toLowerCase());

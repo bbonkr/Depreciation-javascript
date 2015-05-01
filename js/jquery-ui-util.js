@@ -1,4 +1,9 @@
-﻿$(function () {
+﻿/*!
+ * Copyright 2011-2015 Pon Cheol Ku 
+ * Licensed under MIT (https://github.com/bbonkr/Depreciation-javascript/blob/master/LICENSE.md)
+ */
+
+$(function () {
     // datepicker 한글화
     $.datepicker.regional['ko'] = {
         closeText: '닫기',
