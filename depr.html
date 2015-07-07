@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <title>감가상각</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="description" content="감가상각 예제">
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css" media="screen" charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="./css/jquery-ui-1.10.4.custom.min.css" charset="utf-8" media="screen" />
+    <script src="./js/jquery-1.11.2.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/jquery-ui-1.10.4.custom.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/jquery-util.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/jquery-ui-util.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/jquery.autoNumeric.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./js/bootbox.min.js" type="text/javascript" charset="utf-8" async defer></script>
+    <script src="./js/prototypes.js" type="text/javascript" charset="utf-8" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>감가상각 <small>예제</small></h1>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                
+                <div class="form-group">
+                    <label for="">취득가액</label>
+                    <input type="text" class="form-control autonumeric required" name="acq_amt" id="acq_amt" value="" autofocus placeholder="숫자만 입력" maxlength="19" data-description="취득가액" />
+                </div>
+
+                <div class="form-group">
+                    <label for="">취득일자</label>
+                    <input type="date" class="form-control datepicker required" name="acq_dt" id="acq_dt" value="" placeholder="yyyy-mm-dd" maxlength="10" data-description="취득일자" />
+                </div>
+                
+                <button id="btnCalc" class="btn btn-primary">실행</button>
+            </div>  
+
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>내용연수</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control autonumeric required" id="usefullife" maxlength="3" data-description="내용연수" />
+                        <span class="input-group-addon"> 년</span>    
+                    </div>
+                </div>
+                
+            </div>
+            <div class="col-md-4">
+                <div class="well">
+                    <dl>
+                        <dt>취득가액</dt>
+                        <dd>자산 취득금액입니다.</dd>
+                        <dt>취득일자</dt>
+                        <dd>자산으로 편입된 일자입니다. <br /><small>(yyyy-mm-dd 형식으로 입력)</small></dd>
+                    </dl>
+                    <p>내용연수에 해당하는 연도만큼 상각합니다. 상각시작일자는 자산취득일자가 포함된 월의 1일을 기준으로 합니다.</p>
+                    <p><strong>회기의 시작</strong>은 3월 1일이고, <strong>회기의 종료</strong>는 다음해 2월 마지막 날짜입니다. </p>
+                    
+                </div>                
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="">월상각금액</label>
+                    
+                        <input type="text" class="form-control autonumeric" name="depr_base_amt" id="depr_base_amt" readonly />
+                    
+                </div>
+            </div>
+        </div><!-- row -->
+        
+        <hr />
+
+        <div class="row">
+            <div class="md-col-12">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="datagrid">
+                        <thead>
+                            <tr>
+                                <th class="text-center">회계년도</th>
+                                <th class="text-center">상각기준일자</th>
+                                <th class="text-right">상각액</th>
+                                <th class="text-center">산출근거</th>
+                                <th class="text-right">상각누계액</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- container -->
+
+    <script type="text/javascript">
+        $(document).ready(function(){
+            runDatepicker('.datepicker');
+
+            // if(isMobile){
+            //     $('#acq_amt, #usefullife').attr('type', 'number');
+            //     $('#usefullife').val('5');
+            // }
+            
+            $('.autonumeric').autoNumeric('init',{vMin:0, mRound:'C', aPad:false}).addClass('text-right');
+            $('#usefullife').autoNumeric('set', 5);
+            
+            $('#btnCalc').on('click', function(event){
+                event.preventDefault();
+                var message = '';
+                var valid = true;
+                var $messageList = $('<ul></ul>');
+                $('.required').each(function(){
+                    if($(this).val() == ''){
+                        if(message.length > 0){ message += '<br />'; }
+                        message += '- ' + $(this).attr('data-description');
+                        valid = false;
+                    }
+                });
+                console.log('message: ' + message);
+
+                if(!valid){
+                    message = '아래 항목을 입력하셔야 합니다.<br />' + message;
+                    bootbox.alert(message);                    
+                }
+                else{
+                    var acqAmout = 0;
+                    var deprMonth = 0;
+                    var usefullife = 0;
+                    var acqDate = '';
+                    var baseAmount = 0;
+
+                    acqAmout = $('#acq_amt').autoNumeric('get');
+                    usefullife = $('#usefullife').autoNumeric('get');
+                    acqDate = $('#acq_dt').val();
+                    
+                    var $table = $('#datagrid > tbody').empty();
+                    var data = procDepr(acqDate, acqAmout, usefullife);
+
+                    if(data != null){
+                        $('#depr_base_amt').autoNumeric('set', data['deprBaseAmount']);
+                        for(var i  =0; i < data['rows'].length; i++){
+                            var $tr = $('<tr />');
+                            
+                            var $td1 = $('<td />').addClass('text-center');
+                            var $td2 = $('<td />').addClass('text-center');
+                            var $td3 = $('<td />').addClass('text-right');
+                            var $td4 = $('<td />').addClass('text-center');
+                            var $td5 = $('<td />').addClass('text-right');
+                            //var $td6 = $('<td />');
+             
+                            $td1.text(data['rows'][i]['year']);
+                            $td2.text(data['rows'][i]['term']);
+                            
+                            $td3.text(numberWithCommas(data['rows'][i]['deprAmount']));
+                            $td4.text(data['rows'][i]['deprDescription']);
+                            $td5.text(numberWithCommas(data['rows'][i]['deprAggregate']));
+                            
+                            $tr.append($td1).append($td2).append($td3).append($td4).append($td5);
+                            $table.append($tr);
+                        }
+                    }
+                    else{
+                        $('#depr_base_amt').val('');
+                    }
+                } /* valid */
+                return false;
+            });
+            
+            // set Sample data
+            setSampleData();
+        });
+    
+        function setSampleData(){
+            $('#acq_amt').autoNumeric('set', 12000000);
+            //$('#usefullife').autoNumeric('set', 5);
+            $('#acq_dt').val('2011-01-02');
+        }
+
+        function getAcntYear(date){
+            var theDate = new Date(Date.parse(date));
+            var year = 0;
+            var month = 0;
+
+            year = theDate.getFullYear().toString();
+            month = theDate.getMonth();
+
+            console.log('회계연도: '+year);
+            console.log('Month: '+ month);
+
+            // january = 0
+            if(month == null){return null;}
+            else if(month >= 2){ return year;}
+            else { return (year - 1); }    
+        }
+
+        function getAcntTerm(year){
+            var startString = '';
+            var endString = '';
+            startString = year + '-03-01';
+            endString = (parseInt(year, 10) + 1) + '-03-01';            
+
+            var start = new Date(Date.parse(startString));
+            var end = new Date( Date.parse(endString));
+            end.setHours(-1);
+
+            return { 
+                'start' : start.getDateString(), 
+                'end' : end.getDateString(), 
+                toString:function(){ return start.getDateString() + ' ~ ' + end.getDateString(); }
+            };
+        }
+
+        function procDepr(acq_dt, acq_amt, usefullife){
+            var maxLoop = 100;
+            var loop = 0;
+            var baseAmount = 0;
+            var acqAmout = 0;
+            var acqDate = '';
+            var acqMonth = 0;
+            var deprMonthBasis = usefullife * 12;
+            var deprMonth = 0;
+            var acntYear = '';
+            var countOfDeprMonth = 0;   // 상각개월수
+            var sum = 0;
+            var sumOfMonths = 0;
+            var depr = new Array();
+            var resultData = { 'deprBaseAmount': 0, 'rows' : new Array() };
+            
+            maxLoop = Math.floor( deprMonthBasis / 12) + 2;
+
+            acqDate = acq_dt;    
+            acqAmout = acq_amt;
+
+            deprMonth = deprMonthBasis;
+
+
+            baseAmount = Math.floor((acqAmout / (deprMonth * 1.0)));
+
+            //$('#depr_base_amt').autoNumeric('set', baseAmount);
+            resultData['deprBaseAmount'] = baseAmount;
+
+
+            acntYear = getAcntYear(acqDate);
+
+            // var $table = $('#datagrid > tbody').empty();
+            acqMonth = new Date(Date.parse(acqDate)).getMonth() + 1;
+            
+            // 1, 2월이면 1, 2 개월
+            // (12 - 당월 + 1) 회 + 다음해 1, 2월
+            countOfDeprMonth = acqMonth < 3 ? (3 - acqMonth) : (12 - acqMonth) + 1 + 2;
+            
+            //deprMonth -= countOfDeprMonth;  // 초기값 조정
+
+            var nextBreak = false;
+            var i  = deprMonth;
+
+            var tmp_acntYear = '';
+            var tmp_acntTerm = '';
+            var tmp_deprAmount = 0;
+            var tmp_deprDescription = '';
+            var deprAggregate = 0;
+
+            while(true){
+                if(deprMonth <= 0) { break; }
+                loop++;
+                
+                sumOfMonths += countOfDeprMonth; // 누적 상각 개월수 체크
+                if(deprMonth === deprMonthBasis){
+                    
+                }
+                else if( deprMonth > 12){
+                    //i -= countOfDeprMonth;
+                    countOfDeprMonth = 12;
+                    
+                    // 한번 더 실행 후 종료
+                    // if(i <= 12){ nextBreak = true;}
+                }
+                else if(deprMonth >= 0){
+                    countOfDeprMonth = deprMonth;
+                    nextBreak = true;
+                }
+                else {
+                    break;
+                }    
+
+                tmp_acntYear = acntYear;                
+                tmp_acntTerm = getAcntTerm(acntYear).toString();
+                if(nextBreak){
+                    // 마지막 상각건은 취득금액 - 상각누계액으로 계산한다.
+                    // 월 상각금액이 정수가 아닐 수 있기 떄문
+                    tmp_deprAmount= acqAmout - sum;                    
+                    tmp_deprDescription = numberWithCommas(acqAmout) + '원 - ' + numberWithCommas(sum) + '원';
+                    sum += (acqAmout - sum );
+                }
+                else{
+                    
+                    tmp_deprAmount = baseAmount * countOfDeprMonth;
+                    tmp_deprDescription = numberWithCommas(baseAmount) + '원 * ' + countOfDeprMonth + '개월';
+                    sum += (baseAmount * countOfDeprMonth);
+                }                
+              
+                deprAggregate = sum;
+              
+                resultData['rows'].push({
+                    'year': tmp_acntYear, 
+                    'term': tmp_acntTerm,
+                    'deprAmount': tmp_deprAmount,
+                    'deprDescription' : tmp_deprDescription,
+                    'deprAggregate':deprAggregate
+                });
+
+                // 회계연도 증가
+                acntYear++;                    
+                deprMonth -= countOfDeprMonth;                         
+
+                if(loop >= maxLoop){
+                    //bootbox.alert('오류가 발생했습니다.');
+                    return null;
+                }   
+            }
+
+            console.log(resultData);
+
+            return resultData;
+        }
+
+    </script>
+
+</body>
+</html>
